@@ -705,10 +705,12 @@ class AssetsController extends Controller
             $asset->last_audit_date = date('Y-m-d h:i:s');
 
             if ($asset->save()) {
-                $log = $asset->logAudit(request('note'),request('location_id'));
+                $this->authorize('update', $asset);
+                $this->moveUpload($request, $asset->id);
+                $log = $asset->logAudit(request('notes'),request('location_id'));
                 return response()->json(Helper::formatStandardApiResponse('success', [
                     'asset_tag'=> e($asset->asset_tag),
-                    'note'=> e($request->input('note')),
+                    'notes'=> e($request->input('notes')),
                     'next_audit_date' => Helper::getFormattedDateObject($log->calcNextAuditDate())
                 ], trans('admin/hardware/message.audit.success')));
             }
@@ -721,4 +723,34 @@ class AssetsController extends Controller
 
 
     }
+
+    /**
+     * Move uploaded files to the server.
+     *
+     * @author Geoff Young
+     * @param $request
+     * @param int $assetId
+     * @return null
+     * @since [v4.2]
+     */
+    public function moveUpload($request, $assetId = null)
+    {
+
+        if (!$asset = Asset::find($assetId)) {
+            return redirect()->route('hardware.index')->with('error', trans('admin/hardware/message.does_not_exist'));
+        }
+
+        $this->authorize('update', $asset);
+
+        $destinationPath = config('app.private_uploads').'/assets';
+        foreach ($request->file('assetfile') as $file) {
+            $extension = $file->getClientOriginalExtension();
+            $filename = 'hardware-'.$asset->id.'-'.str_random(8);
+            $filename .= '-'.str_slug($file->getClientOriginalName()).'.'.$extension;
+            $file->move($destinationPath, $filename);
+            $asset->logUpload($filename, e(Input::get('notes')));
+        }
+        return;
+    }
+
 }

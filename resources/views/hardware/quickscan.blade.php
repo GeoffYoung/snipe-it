@@ -58,13 +58,25 @@
                             </div>
                         </div>
 
+                        @can('update', \App\Models\Asset::class)
+                            <div class="form-group {{ $errors->has('assetfile') ? 'error' : '' }}">
+                                {{ Form::label('assetfile', trans('general.file_uploads'), array('class' => 'col-md-3 control-label')) }}
+                                <div class="col-md-9">
+                                <span class="btn btn-default btn-file">Browse for file...
+                                    {{ Form::file('assetfile[]', ['multiple' => 'multiple']) }}
+                                </span>
+                                <p>{{ trans('admin/hardware/general.filetype_info') }}</p>
+                                {!! $errors->first('assetfile', '<span class="alert-msg"><i class="fa fa-times"></i> :message</span>') !!}
+                                </div>
+                            </div>
+                        @endcan
 
                         <!-- Note -->
-                        <div class="form-group {{ $errors->has('note') ? 'error' : '' }}">
-                            {{ Form::label('note', trans('admin/hardware/form.notes'), array('class' => 'col-md-3 control-label')) }}
+                        <div class="form-group {{ $errors->has('notes') ? 'error' : '' }}">
+                            {{ Form::label('notes', trans('admin/hardware/form.notes'), array('class' => 'col-md-3 control-label')) }}
                             <div class="col-md-8">
-                                <textarea class="col-md-6 form-control" id="note" name="note">{{ Input::old('note') }}</textarea>
-                                {!! $errors->first('note', '<span class="alert-msg"><i class="fa fa-times"></i> :message</span>') !!}
+                                <textarea class="col-md-6 form-control" id="notes" name="notes">{{ Input::old('notes') }}</textarea>
+                                {!! $errors->first('notes', '<span class="alert-msg"><i class="fa fa-times"></i> :message</span>') !!}
                             </div>
                         </div>
 
@@ -127,8 +139,7 @@
             event.preventDefault();
 
             var form = $("#audit-form").get(0);
-            var formData = $('#audit-form').serializeArray();
-
+            var formData = new FormData( form );
             $.ajax({
                 url: "{{ route('api.asset.audit') }}",
                 type : 'POST',
@@ -137,7 +148,9 @@
                     "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr('content')
                 },
                 dataType : 'json',
-                data : formData,
+                data : new FormData( form ),
+                processData: false,
+                contentType: false,
                 success : function (data) {
                     if (data.status == 'success') {
                         $('#audited tbody').append("<tr class='success'><td>" + data.payload.asset_tag + "</td><td>" + data.messages + "</td><td><i class='fa fa-check text-success'></i></td></tr>");
