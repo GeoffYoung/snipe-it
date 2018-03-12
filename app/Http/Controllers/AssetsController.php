@@ -39,6 +39,7 @@ use TCPDF;
 use Validator;
 use View;
 use App\Models\CheckoutRequest;
+use App\Http\Controllers\Api\AssetsController as ApiAssetsController;
 
 /**
  * This class controls all actions related to assets for
@@ -954,13 +955,7 @@ class AssetsController extends Controller
         $destinationPath = config('app.private_uploads').'/assets';
 
         if ($request->hasFile('assetfile')) {
-            foreach ($request->file('assetfile') as $file) {
-                $extension = $file->getClientOriginalExtension();
-                $filename = 'hardware-'.$asset->id.'-'.str_random(8);
-                $filename .= '-'.str_slug($file->getClientOriginalName()).'.'.$extension;
-                $file->move($destinationPath, $filename);
-                $asset->logUpload($filename, e(Input::get('notes')));
-            }
+            (new ApiAssetsController())->moveUpload($request, $assetId);
             return redirect()->back()->with('success', trans('admin/hardware/message.upload.success'));
         }
 
